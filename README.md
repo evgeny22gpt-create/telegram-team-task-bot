@@ -159,6 +159,11 @@ python -m unittest discover -s tests -v
 - backup и восстановимость SQLite;
 - dry-run, применение и проверка владельца.
 
+## Учебные материалы
+
+- [интерактивный HTML-урок](lesson/telegram_tasks_lesson.html) — автономная страница для чтения, печати и сохранения в PDF;
+- [Markdown для NotebookLM](lesson/telegram_tasks_notebooklm.md) — расширенный конспект, глоссарий, контрольные вопросы и задания.
+
 ## Доказательства проверок
 
 Папка `evidence/` содержит скриншоты Telegram и Excel, а также Markdown-протоколы миграции, перезапуска, Google API, Apps Script и защищённой синхронизации.

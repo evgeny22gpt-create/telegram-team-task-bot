@@ -1,0 +1,687 @@
+<!doctype html>
+<html lang="ru" data-theme="paper">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Практический урок: Telegram-бот задач на Python, aiogram, SQLite и Google Sheets.">
+  <title>Telegram-бот задач — практический урок</title>
+  <style>
+    :root {
+      --ink: #17212b;
+      --muted: #586777;
+      --paper: #f5f0e6;
+      --surface: #fffdf7;
+      --line: #d8cdbb;
+      --accent: #e85d2a;
+      --accent-2: #1f7a6c;
+      --code: #111b24;
+      --code-ink: #e8f1f2;
+      --shadow: 0 24px 70px rgba(35, 29, 20, .13);
+      --radius: 18px;
+    }
+
+    html[data-theme="night"] {
+      --ink: #eef3f2;
+      --muted: #a8b6b3;
+      --paper: #111919;
+      --surface: #192323;
+      --line: #334442;
+      --accent: #ff7847;
+      --accent-2: #62c7b6;
+      --code: #091010;
+      --code-ink: #e8f1f2;
+      --shadow: 0 24px 70px rgba(0, 0, 0, .28);
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      color: var(--ink);
+      background:
+        linear-gradient(90deg, transparent 49px, rgba(232, 93, 42, .09) 50px, transparent 51px),
+        radial-gradient(circle at 14% 4%, rgba(31, 122, 108, .13), transparent 30rem),
+        var(--paper);
+      font-family: Aptos, "Segoe UI", sans-serif;
+      line-height: 1.65;
+      transition: color .2s ease, background-color .2s ease;
+    }
+
+    a { color: var(--accent-2); text-underline-offset: 3px; }
+    a:hover { color: var(--accent); }
+    code, pre, .eyebrow, .step-number, .chip {
+      font-family: Consolas, "Cascadia Code", monospace;
+    }
+
+    .progress {
+      position: fixed;
+      inset: 0 auto auto 0;
+      z-index: 20;
+      width: 0;
+      height: 4px;
+      background: var(--accent);
+      box-shadow: 0 0 18px rgba(232, 93, 42, .5);
+    }
+
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 15;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+      padding: 10px clamp(18px, 4vw, 64px);
+      color: var(--ink);
+      background: color-mix(in srgb, var(--paper) 88%, transparent);
+      border-bottom: 1px solid var(--line);
+      backdrop-filter: blur(16px);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 800;
+      letter-spacing: -.02em;
+    }
+
+    .brand-mark {
+      width: 28px;
+      height: 28px;
+      display: grid;
+      place-items: center;
+      color: white;
+      background: var(--accent-2);
+      border-radius: 8px 8px 8px 2px;
+      font-size: 14px;
+    }
+
+    .actions { display: flex; gap: 8px; }
+    button {
+      color: inherit;
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 8px 13px;
+      font: inherit;
+      font-size: 14px;
+      cursor: pointer;
+    }
+    button:hover { border-color: var(--accent); transform: translateY(-1px); }
+    button:focus-visible, a:focus-visible { outline: 3px solid color-mix(in srgb, var(--accent) 45%, transparent); outline-offset: 3px; }
+
+    .hero {
+      min-height: 78vh;
+      display: grid;
+      grid-template-columns: minmax(0, 1.3fr) minmax(280px, .7fr);
+      align-items: center;
+      gap: clamp(30px, 6vw, 90px);
+      max-width: 1240px;
+      margin: 0 auto;
+      padding: clamp(72px, 10vw, 140px) clamp(24px, 5vw, 74px);
+    }
+
+    .eyebrow {
+      margin: 0 0 16px;
+      color: var(--accent);
+      font-size: 13px;
+      font-weight: 800;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+    }
+
+    h1, h2, h3 {
+      font-family: "Iowan Old Style", "Palatino Linotype", Georgia, serif;
+      line-height: 1.08;
+      letter-spacing: -.035em;
+    }
+    h1 { max-width: 850px; margin: 0; font-size: clamp(48px, 8vw, 104px); }
+    h2 { margin: 0 0 24px; font-size: clamp(34px, 5vw, 62px); }
+    h3 { margin: 34px 0 12px; font-size: clamp(24px, 3vw, 34px); }
+
+    .hero p:not(.eyebrow) { max-width: 750px; font-size: clamp(18px, 2.2vw, 24px); color: var(--muted); }
+    .hero strong { color: var(--ink); }
+
+    .hero-card {
+      position: relative;
+      padding: 26px;
+      color: #f0f7f5;
+      background: var(--code);
+      border-radius: 8px 34px 8px 34px;
+      box-shadow: var(--shadow);
+      transform: rotate(2deg);
+    }
+    .hero-card::before {
+      content: "";
+      position: absolute;
+      inset: -12px 16px 12px -12px;
+      z-index: -1;
+      border: 2px solid var(--accent);
+      border-radius: inherit;
+    }
+    .hero-card p { margin: 5px 0; color: #bcd1cf; font-size: 15px; }
+    .hero-card strong { color: #fff; }
+    .chip-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 20px; }
+    .chip { padding: 4px 9px; color: #0d312b; background: #83dccb; border-radius: 999px; font-size: 12px; }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 250px minmax(0, 850px);
+      justify-content: center;
+      align-items: start;
+      gap: clamp(36px, 6vw, 90px);
+      padding: 30px clamp(20px, 5vw, 70px) 100px;
+    }
+
+    .toc {
+      position: sticky;
+      top: 76px;
+      padding: 20px 0;
+      border-top: 2px solid var(--ink);
+      border-bottom: 1px solid var(--line);
+    }
+    .toc strong { display: block; margin-bottom: 10px; font-size: 13px; text-transform: uppercase; letter-spacing: .1em; }
+    .toc a { display: block; padding: 6px 10px; color: var(--muted); border-left: 2px solid transparent; text-decoration: none; font-size: 14px; }
+    .toc a.active { color: var(--ink); border-left-color: var(--accent); background: color-mix(in srgb, var(--surface) 75%, transparent); }
+
+    main { min-width: 0; }
+    .chapter {
+      position: relative;
+      padding: 76px 0;
+      border-top: 1px solid var(--line);
+      scroll-margin-top: 72px;
+    }
+    .step-number { color: var(--accent); font-size: 13px; font-weight: 800; letter-spacing: .14em; }
+    .lead { color: var(--muted); font-size: 20px; }
+
+    .grid-2, .grid-3 { display: grid; gap: 18px; margin: 26px 0; }
+    .grid-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .grid-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+
+    .card {
+      padding: 22px;
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: 0 10px 30px rgba(35, 29, 20, .05);
+    }
+    .card h3 { margin-top: 0; font-size: 25px; }
+    .card p:last-child { margin-bottom: 0; }
+
+    .callout {
+      margin: 28px 0;
+      padding: 22px 24px;
+      background: color-mix(in srgb, var(--accent-2) 10%, var(--surface));
+      border-left: 5px solid var(--accent-2);
+      border-radius: 4px var(--radius) var(--radius) 4px;
+    }
+    .callout.warn { background: color-mix(in srgb, var(--accent) 10%, var(--surface)); border-left-color: var(--accent); }
+    .callout strong { display: block; margin-bottom: 5px; }
+
+    .codebox { position: relative; margin: 24px 0; }
+    pre {
+      overflow: auto;
+      margin: 0;
+      padding: 24px;
+      color: var(--code-ink);
+      background: var(--code);
+      border-radius: var(--radius);
+      line-height: 1.55;
+      box-shadow: var(--shadow);
+      white-space: pre;
+    }
+    .copy {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      color: #d9e6e4;
+      background: #26363a;
+      border-color: #465a5e;
+    }
+    :not(pre) > code { padding: .15em .38em; color: var(--accent); background: color-mix(in srgb, var(--accent) 9%, transparent); border-radius: 5px; }
+
+    table { width: 100%; border-collapse: collapse; margin: 24px 0; background: var(--surface); }
+    th, td { padding: 13px 15px; border: 1px solid var(--line); text-align: left; vertical-align: top; }
+    th { color: var(--surface); background: var(--ink); }
+
+    .flow { counter-reset: flow; display: grid; gap: 12px; margin: 26px 0; }
+    .flow li {
+      list-style: none;
+      display: grid;
+      grid-template-columns: 42px 1fr;
+      gap: 14px;
+      align-items: start;
+      padding: 16px;
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+    }
+    .flow li::before {
+      counter-increment: flow;
+      content: counter(flow, decimal-leading-zero);
+      color: var(--accent);
+      font-family: Consolas, monospace;
+      font-weight: 800;
+    }
+
+    details { margin: 12px 0; padding: 14px 18px; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; }
+    summary { cursor: pointer; font-weight: 750; }
+    summary::marker { color: var(--accent); }
+
+    .checklist { list-style: none; padding: 0; }
+    .checklist li { position: relative; padding: 8px 0 8px 32px; border-bottom: 1px dashed var(--line); }
+    .checklist li::before { content: "□"; position: absolute; left: 4px; top: 7px; color: var(--accent-2); font-size: 20px; }
+
+    footer { padding: 50px 24px 80px; text-align: center; color: var(--muted); border-top: 1px solid var(--line); }
+
+    @media (max-width: 900px) {
+      .hero { grid-template-columns: 1fr; min-height: auto; }
+      .hero-card { max-width: 520px; transform: none; }
+      .layout { grid-template-columns: 1fr; }
+      .toc { position: relative; top: 0; columns: 2; }
+      .toc strong { column-span: all; }
+      .grid-3 { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 620px) {
+      .brand span:last-child { display: none; }
+      .actions button { padding: 7px 10px; }
+      .hero { padding-top: 60px; }
+      .grid-2 { grid-template-columns: 1fr; }
+      .toc { columns: 1; }
+      pre { font-size: 12px; }
+      th, td { padding: 9px; font-size: 13px; }
+    }
+
+    @media print {
+      .topbar, .toc, .progress, .copy { display: none !important; }
+      body { background: white; color: black; }
+      .hero { min-height: 0; padding: 30px 0; }
+      .layout { display: block; padding: 0; }
+      .chapter { break-inside: avoid; padding: 30px 0; }
+      .card, .callout, pre { box-shadow: none; }
+      a { color: black; }
+    }
+  </style>
+</head>
+<body>
+  <div class="progress" id="progress" aria-hidden="true"></div>
+
+  <header class="topbar">
+    <div class="brand"><span class="brand-mark">/t</span><span>Практикум Telegram Tasks</span></div>
+    <div class="actions">
+      <button type="button" id="themeButton" aria-label="Переключить тему">Ночная тема</button>
+      <button type="button" onclick="window.print()">Печать / PDF</button>
+    </div>
+  </header>
+
+  <section class="hero">
+    <div>
+      <p class="eyebrow">Python · aiogram · SQLite · Google Sheets</p>
+      <h1>Бот задач, который не забывает</h1>
+      <p>Пошаговый урок на реальном проекте: от первой команды <strong>/start</strong> до защищённой двусторонней синхронизации и публичного GitHub-портфолио.</p>
+    </div>
+    <aside class="hero-card" aria-label="Краткий паспорт проекта">
+      <p><strong>Результат:</strong> работающий Telegram-бот</p>
+      <p><strong>База:</strong> SQLite, переживает перезапуск</p>
+      <p><strong>Экспорт:</strong> CSV для Excel</p>
+      <p><strong>Интеграция:</strong> Google Sheets + Apps Script</p>
+      <p><strong>Контроль:</strong> 43 автоматических теста</p>
+      <div class="chip-row">
+        <span class="chip">без хардкода токена</span>
+        <span class="chip">dry-run</span>
+        <span class="chip">backup</span>
+        <span class="chip">owner-only</span>
+      </div>
+    </aside>
+  </section>
+
+  <div class="layout">
+    <nav class="toc" aria-label="Содержание">
+      <strong>Маршрут урока</strong>
+      <a href="#goal">1. Что строим</a>
+      <a href="#structure">2. Архитектура</a>
+      <a href="#setup">3. Окружение</a>
+      <a href="#config">4. config.py</a>
+      <a href="#database">5. SQLite</a>
+      <a href="#bot">6. Команды</a>
+      <a href="#csv">7. CSV</a>
+      <a href="#sync">8. Google sync</a>
+      <a href="#tests">9. Проверки</a>
+      <a href="#delivery">10. Сдача и GitHub</a>
+    </nav>
+
+    <main>
+      <section class="chapter" id="goal">
+        <span class="step-number">ГЛАВА 01</span>
+        <h2>Не «скрипт», а маленькая система</h2>
+        <p class="lead">Минимальная версия домашнего задания состоит из четырёх команд и одной таблицы SQLite. Мы идём дальше и сразу учимся разделять ответственность между файлами.</p>
+
+        <div class="grid-3">
+          <article class="card"><h3>Интерфейс</h3><p>Telegram принимает команды и показывает человеку результат.</p></article>
+          <article class="card"><h3>Логика</h3><p>Python решает, что сохранить, выгрузить или синхронизировать.</p></article>
+          <article class="card"><h3>Данные</h3><p>SQLite хранит задачи на диске, а Google Таблица даёт удобное командное представление.</p></article>
+        </div>
+
+        <h3>Обязательный результат</h3>
+        <table>
+          <thead><tr><th>Команда</th><th>Что должен сделать бот</th></tr></thead>
+          <tbody>
+            <tr><td><code>/start</code></td><td>Поздороваться и показать справку.</td></tr>
+            <tr><td><code>/add Текст</code></td><td>Проверить текст и сохранить новую задачу.</td></tr>
+            <tr><td><code>/list</code></td><td>Показать задачи по порядку добавления.</td></tr>
+            <tr><td><code>/list_csv</code></td><td>Сформировать CSV в памяти и отправить документом.</td></tr>
+          </tbody>
+        </table>
+
+        <div class="callout"><strong>Главная идея урока</strong>Каждая новая возможность должна иметь понятное место в архитектуре и проверку, которая доказывает её работу.</div>
+      </section>
+
+      <section class="chapter" id="structure">
+        <span class="step-number">ГЛАВА 02</span>
+        <h2>Карта проекта</h2>
+        <p class="lead">Когда всё находится в одном файле, первая версия кажется проще. Но уже на CSV и Google API становится трудно понимать, где искать ошибку.</p>
+
+        <div class="codebox">
+          <button class="copy" type="button">Копировать</button>
+          <pre><code>telegram-team-task-bot/
+├── bot.py                  # Telegram и aiogram
+├── config.py               # настройки и секреты
+├── database.py             # SQLite
+├── exporter.py             # CSV
+├── google_sync.py          # правила синхронизации
+├── google_apps_script/     # onEdit для Google Таблицы
+├── tools/                  # диагностика и ручной запуск
+├── tests/                  # автоматические проверки
+├── evidence/               # скриншоты и протоколы
+└── requirements.txt</code></pre>
+        </div>
+
+        <div class="grid-2">
+          <article class="card"><h3>Связность ниже</h3><p>CSV ничего не знает о Telegram. База ничего не знает о Google. Их соединяет верхний уровень.</p></article>
+          <article class="card"><h3>Ошибки локализуются</h3><p>Проблема SQL ищется в <code>database.py</code>, а ошибка текста ответа — в <code>bot.py</code>.</p></article>
+        </div>
+      </section>
+
+      <section class="chapter" id="setup">
+        <span class="step-number">ГЛАВА 03</span>
+        <h2>Изолированное окружение</h2>
+        <p class="lead">Виртуальное окружение — отдельная коробка с библиотеками конкретного проекта. Оно защищает проекты друг от друга.</p>
+
+        <div class="codebox">
+          <button class="copy" type="button">Копировать</button>
+          <pre><code>py -m venv .venv
+.\.venv\Scripts\Activate.ps1
+python -m pip install -r requirements.txt</code></pre>
+        </div>
+
+        <div class="callout warn"><strong>Типичная ошибка</strong>Команда <code>python</code> может указывать на интерпретатор другого проекта. Надёжная диагностика: <code>Get-Command python</code> и <code>python --version</code>.</div>
+
+        <details>
+          <summary>Зачем фиксировать версии в requirements.txt?</summary>
+          <p>Чтобы на другом компьютере установился тот же интерфейс библиотек. В проекте зафиксированы <code>aiogram==3.29.1</code> и <code>gspread==6.2.1</code>.</p>
+        </details>
+      </section>
+
+      <section class="chapter" id="config">
+        <span class="step-number">ГЛАВА 04</span>
+        <h2>config.py — диспетчер настроек</h2>
+        <p class="lead"><code>config.py</code> не «запускает бота». Он собирает настройки из окружения, превращает строки в удобные типы и останавливает запуск, если обязательных данных нет.</p>
+
+        <div class="codebox">
+          <button class="copy" type="button">Копировать</button>
+          <pre><code>@dataclass(frozen=True, slots=True)
+class Settings:
+    bot_token: str
+    db_path: Path
+    google_spreadsheet_id: str
+    google_sheet_name: str
+    google_service_account_file: Path
+    telegram_owner_ids: frozenset[int]</code></pre>
+        </div>
+
+        <h3>Что это даёт</h3>
+        <ul>
+          <li><strong>Одна точка входа.</strong> Другие модули получают готовый объект <code>Settings</code>.</li>
+          <li><strong>Стабильные пути.</strong> База и ключ ищутся относительно папки проекта, а не случайной папки терминала.</li>
+          <li><strong>Приоритет окружения.</strong> Системная переменная сильнее локального <code>.env</code>.</li>
+          <li><strong>Проверка типов.</strong> Telegram ID превращаются в множество положительных чисел.</li>
+        </ul>
+
+        <div class="callout warn"><strong>Секреты не являются кодом</strong>Токен, JSON-ключ и owner ID хранятся только в <code>.env</code> и <code>credentials/</code>. В Git попадает лишь безопасный <code>.env.example</code>.</div>
+      </section>
+
+      <section class="chapter" id="database">
+        <span class="step-number">ГЛАВА 05</span>
+        <h2>SQLite: память бота на диске</h2>
+        <p class="lead">SQLite — это база данных внутри одного файла. Сервер не требуется, но SQL, транзакции и схема остаются настоящими.</p>
+
+        <div class="codebox">
+          <button class="copy" type="button">Копировать</button>
+          <pre><code>CREATE TABLE IF NOT EXISTS tasks (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    text TEXT NOT NULL,
+    user TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    status TEXT NOT NULL DEFAULT 'Новая',
+    category TEXT NOT NULL DEFAULT 'Без категории',
+    updated_at TEXT NOT NULL
+)</code></pre>
+        </div>
+
+        <h3>Почему данные переживают перезапуск?</h3>
+        <p>Процесс Python завершается, но файл <code>tasks.db</code> остаётся. При следующем запуске <code>CREATE TABLE IF NOT EXISTS</code> не удаляет существующую таблицу.</p>
+
+        <h3>Почему в SQL стоят знаки вопроса?</h3>
+        <div class="codebox">
+          <button class="copy" type="button">Копировать</button>
+          <pre><code>connection.execute(
+    "INSERT INTO tasks (text, user, created_at) VALUES (?, ?, ?)",
+    (clean_text, clean_user, timestamp),
+)</code></pre>
+        </div>
+        <p>Параметры отделяют данные пользователя от текста SQL-команды. Это защищает от SQL-инъекций и проблем с кавычками.</p>
+
+        <div class="callout"><strong>Миграция без потери данных</strong>Проект умеет открыть старую таблицу из четырёх колонок и добавить <code>status</code>, <code>category</code>, <code>updated_at</code> через <code>ALTER TABLE</code>.</div>
+      </section>
+
+      <section class="chapter" id="bot">
+        <span class="step-number">ГЛАВА 06</span>
+        <h2>aiogram: маршруты сообщений</h2>
+        <p class="lead">Router сопоставляет команду с функцией-обработчиком. Dispatcher передаёт обработчику зависимости, например путь к базе или объект настроек.</p>
+
+        <div class="codebox">
+          <button class="copy" type="button">Копировать</button>
+          <pre><code>@router.message(Command("add"))
+async def handle_add(message: Message, command: CommandObject, db_path: Path):
+    if not command.args:
+        await message.answer("После /add напишите текст задачи.")
+        return
+
+    task_id = add_task(db_path, command.args, user_label)
+    await message.answer(f"Задача #{task_id} сохранена ✅")</code></pre>
+        </div>
+
+        <h3>Почему функция async?</h3>
+        <p>Бот ждёт сеть: Telegram, Google API. Во время ожидания event loop может обрабатывать другие сообщения. Блокирующий <code>gspread</code> вынесен через <code>asyncio.to_thread</code>.</p>
+
+        <div class="grid-2">
+          <article class="card"><h3>/sync</h3><p>Только читает и показывает план. Доступен как безопасная диагностика.</p></article>
+          <article class="card"><h3>/sync_apply confirm</h3><p>Проверяет числовой ID владельца и требует явное подтверждение перед записью.</p></article>
+        </div>
+      </section>
+
+      <section class="chapter" id="csv">
+        <span class="step-number">ГЛАВА 07</span>
+        <h2>CSV, который понимает Excel</h2>
+        <p class="lead">CSV — простой текстовый формат, но совместимость зависит от кодировки, разделителя и опасных начальных символов.</p>
+
+        <ul class="flow">
+          <li><div><strong>UTF-8 BOM</strong><br>Помогает старым версиям Excel распознать русский текст.</div></li>
+          <li><div><strong>Разделитель</strong><br><code>csv.writer</code> корректно экранирует кавычки и запятые.</div></li>
+          <li><div><strong>Formula injection</strong><br>Текст, начинающийся с <code>=</code>, <code>+</code>, <code>-</code> или <code>@</code>, нельзя бездумно отдавать Excel как формулу.</div></li>
+          <li><div><strong>Память вместо временного файла</strong><br><code>BufferedInputFile</code> отправляет готовые байты напрямую.</div></li>
+        </ul>
+
+        <div class="callout warn"><strong>Практический тест</strong>CSV считается проверенным только после открытия в Excel или LibreOffice. В проекте дополнительно изменялись «Статус» и «Категория».</div>
+      </section>
+
+      <section class="chapter" id="sync">
+        <span class="step-number">ГЛАВА 08</span>
+        <h2>Синхронизация без угадывания</h2>
+        <p class="lead">Одинаковый <code>id</code> связывает строку Google с записью SQLite. <code>updated_at</code> показывает, какая версия новее.</p>
+
+        <table>
+          <thead><tr><th>Ситуация</th><th>Решение</th></tr></thead>
+          <tbody>
+            <tr><td>Задача только в SQLite</td><td><code>PUSH_TO_GOOGLE</code></td></tr>
+            <tr><td>Задача только в Google</td><td><code>PULL_TO_SQLITE</code></td></tr>
+            <tr><td>SQLite обновлена позже</td><td>Отправить SQLite-версию</td></tr>
+            <tr><td>Google обновлён позже</td><td>Принять Google-версию</td></tr>
+            <tr><td>Данные разные, время одинаковое</td><td><code>CONFLICT</code>, ничего не перезаписывать</td></tr>
+          </tbody>
+        </table>
+
+        <h3>Почему сначала dry-run?</h3>
+        <p>План отделён от применения. Сначала человек видит количество <code>PUSH</code>, <code>PULL</code> и конфликтов. Только затем отдельная команда запускает запись.</p>
+
+        <h3>Зачем Apps Script?</h3>
+        <p>Ручное редактирование Google ячейки само по себе не меняет нашу колонку времени. Простой <code>onEdit(e)</code> отслеживает B, E и F и записывает новое UTC-время в G.</p>
+
+        <div class="callout"><strong>Страховочная сетка</strong>Перед применением создаётся копия через <code>sqlite3.backup</code>, а её целостность проверяется <code>PRAGMA integrity_check</code>.</div>
+      </section>
+
+      <section class="chapter" id="tests">
+        <span class="step-number">ГЛАВА 09</span>
+        <h2>Доказательства вместо «должно работать»</h2>
+        <p class="lead">Тесты не заменяют ручную проверку Telegram и Excel, но позволяют быстро доказать, что новая функция не сломала старые.</p>
+
+        <div class="codebox">
+          <button class="copy" type="button">Копировать</button>
+          <pre><code>python -m unittest discover -s tests -v
+python -m py_compile bot.py config.py database.py exporter.py google_sync.py
+python -m pip check</code></pre>
+        </div>
+
+        <h3>Полезная схема диагностики</h3>
+        <ol class="flow">
+          <li><div><strong>Прочитать ошибку полностью.</strong><br>Путь к Python часто важнее последней строки.</div></li>
+          <li><div><strong>Воспроизвести.</strong><br>Одинаково ли падает при повторном запуске?</div></li>
+          <li><div><strong>Локализовать слой.</strong><br>Telegram, config, SQLite, CSV или Google?</div></li>
+          <li><div><strong>Исправить одну причину.</strong><br>Не менять пять вещей одновременно.</div></li>
+          <li><div><strong>Повторить полный набор тестов.</strong><br>Успешный один тест не гарантирует целый проект.</div></li>
+        </ol>
+      </section>
+
+      <section class="chapter" id="delivery">
+        <span class="step-number">ГЛАВА 10</span>
+        <h2>Сдача и портфолио</h2>
+        <p class="lead">Хорошая сдача позволяет преподавателю быстро проверить требования, а будущему работодателю — понять инженерные решения.</p>
+
+        <h3>Минимальный комплект</h3>
+        <ul class="checklist">
+          <li>Архив исходников без <code>.env</code>, ключей, базы и виртуального окружения.</li>
+          <li>Ссылка на публичный GitHub-репозиторий.</li>
+          <li>Скриншот добавления задачи.</li>
+          <li>Скриншот списка задач.</li>
+          <li>Скриншот CSV-файла в Telegram.</li>
+          <li>Подтверждение открытия CSV в Excel или LibreOffice.</li>
+        </ul>
+
+        <h3>Финальный аудит GitHub</h3>
+        <div class="codebox">
+          <button class="copy" type="button">Копировать</button>
+          <pre><code>git status
+git diff --cached --check
+git ls-files
+git push origin main</code></pre>
+        </div>
+
+        <div class="callout warn"><strong>Перед публикацией</strong>Ищите не только токен и private key, но и лишние операционные идентификаторы: Spreadsheet ID, project number, личный email и Telegram owner ID.</div>
+
+        <h3>Контрольные вопросы</h3>
+        <details><summary>Почему нельзя хранить токен прямо в bot.py?</summary><p>Код попадает в архивы и Git. Любой владелец токена может управлять ботом.</p></details>
+        <details><summary>Чем dry-run отличается от apply?</summary><p>Dry-run только строит план. Apply повторно получает актуальные данные и выполняет разрешённые действия.</p></details>
+        <details><summary>Что произойдёт при одинаковом updated_at и разных данных?</summary><p>Будет создан конфликт. Автоматическая запись остановится.</p></details>
+        <details><summary>Почему Telegram owner ID надёжнее username?</summary><p>Username можно изменить, а числовой ID аккаунта остаётся постоянным.</p></details>
+
+        <p><a href="https://github.com/evgeny22gpt-create/telegram-team-task-bot">Открыть готовый проект на GitHub →</a></p>
+      </section>
+    </main>
+  </div>
+
+  <footer>
+    <strong>Telegram Team Tasks Bot</strong><br>
+    Практический учебный материал · 2026
+  </footer>
+
+  <script>
+    const root = document.documentElement;
+    const themeButton = document.getElementById('themeButton');
+    const savedTheme = localStorage.getItem('lesson-theme');
+    if (savedTheme === 'night') {
+      root.dataset.theme = 'night';
+      themeButton.textContent = 'Светлая тема';
+    }
+
+    themeButton.addEventListener('click', () => {
+      const next = root.dataset.theme === 'night' ? 'paper' : 'night';
+      root.dataset.theme = next;
+      localStorage.setItem('lesson-theme', next);
+      themeButton.textContent = next === 'night' ? 'Светлая тема' : 'Ночная тема';
+    });
+
+    const legacyCopy = (text) => {
+      const textarea = document.createElement('textarea');
+      textarea.value = text;
+      textarea.setAttribute('readonly', '');
+      textarea.style.cssText = 'position:fixed;opacity:0;pointer-events:none';
+      document.body.appendChild(textarea);
+      textarea.select();
+      const copied = document.execCommand('copy');
+      textarea.remove();
+      if (!copied) throw new Error('copy command rejected');
+    };
+
+    document.querySelectorAll('.copy').forEach((button) => {
+      button.addEventListener('click', async () => {
+        const code = button.parentElement.querySelector('code').innerText;
+        const oldText = button.textContent;
+        button.textContent = 'Копирование…';
+        try {
+          if (navigator.clipboard && window.isSecureContext) {
+            await Promise.race([
+              navigator.clipboard.writeText(code),
+              new Promise((_, reject) => setTimeout(reject, 500)),
+            ]).catch(() => legacyCopy(code));
+          } else {
+            legacyCopy(code);
+          }
+          button.textContent = 'Скопировано';
+        } catch {
+          button.textContent = 'Выделите вручную';
+        }
+        setTimeout(() => button.textContent = oldText, 1300);
+      });
+    });
+
+    const progress = document.getElementById('progress');
+    const updateProgress = () => {
+      const max = document.documentElement.scrollHeight - innerHeight;
+      progress.style.width = `${max > 0 ? (scrollY / max) * 100 : 0}%`;
+    };
+    addEventListener('scroll', updateProgress, { passive: true });
+    updateProgress();
+
+    const tocLinks = [...document.querySelectorAll('.toc a')];
+    const sections = [...document.querySelectorAll('.chapter')];
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (!entry.isIntersecting) return;
+        tocLinks.forEach((link) => link.classList.toggle('active', link.hash === `#${entry.target.id}`));
+      });
+    }, { rootMargin: '-20% 0px -70% 0px' });
+    sections.forEach((section) => observer.observe(section));
+  </script>
+</body>
+</html>
