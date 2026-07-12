@@ -170,6 +170,7 @@ python -m unittest discover -s tests -v
 - [сквозная проверка Google → SQLite](evidence/GOOGLE_APPS_SCRIPT_TRIGGER_CHECK.md);
 - [команда `/sync`](evidence/TELEGRAM_SYNC_COMMAND_CHECK.md);
 - [защищённая `/sync_apply`](evidence/TELEGRAM_SYNC_APPLY_SECURITY_CHECK.md).
+- [проверка безопасной публикации на GitHub](evidence/GITHUB_PUBLICATION_CHECK.md).
 
 ## Безопасность
 
