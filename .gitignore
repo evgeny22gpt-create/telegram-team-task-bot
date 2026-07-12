@@ -1,0 +1,27 @@
+# Секреты и локальное окружение
+.env
+.venv/
+
+# Закрытые ключи Google Cloud
+credentials/*.json
+!credentials/README.md
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Редакторы и ОС
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+
+# Локальные данные и выгрузки
+*.db
+*.db-shm
+*.db-wal
+exports/
+logs/
